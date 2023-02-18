@@ -256,16 +256,20 @@ class LiquidHandler:
     if len(missing) > 0:
       raise TypeError(f"Missing arguments to backend.{method.__name__}: {missing}")
 
-    extra = backend_kws - non_default
-    if len(extra) > 0 and len(vars_keyword) == 0:
+    extras = backend_kws - non_default
+    if len(extras) > 0 and len(vars_keyword) == 0:
       if strictness == Strictness.STRICT:
-        raise TypeError(f"Extra arguments to backend.{method.__name__}: {extra}")
+        raise TypeError(f"Extra arguments to backend.{method.__name__}: {extras}")
       elif strictness == Strictness.WARN:
-        warnings.warn(f"Extra arguments to backend.{method.__name__}: {extra}")
+        warnings.warn(f"Removing extra arguments to backend.{method.__name__}: {extras}")
+        new_kwargs = backend_kwargs.copy()
+        for extra in extras:
+          del new_kwargs[extra]
+        return new_kwargs
       else:
-        logger.debug("Extra arguments to backend.%s: %s", method.__name__, extra)
+        logger.debug("Extra arguments to backend.%s: %s", method.__name__, extras)
 
-    return extra
+    return backend_kwargs
 
   @need_setup_finished
   async def pick_up_tips(
@@ -341,10 +345,8 @@ class LiquidHandler:
         op.resource.tracker.queue_pickup(op)
       self.head[channel].queue_pickup(op)
 
-    extras = self._check_args(self.backend.pick_up_tips, backend_kwargs,
+    backend_kwargs = self._check_args(self.backend.pick_up_tips, backend_kwargs,
       default={"ops", "use_channels"})
-    for extra in extras:
-      del backend_kwargs[extra]
 
     try:
       await self.backend.pick_up_tips(ops=pickups, use_channels=use_channels, **backend_kwargs)
@@ -439,10 +441,8 @@ class LiquidHandler:
         op.resource.tracker.queue_drop(op)
       self.head[channel].queue_drop(op)
 
-    extras = self._check_args(self.backend.drop_tips, backend_kwargs,
+    backend_kwargs = self._check_args(self.backend.drop_tips, backend_kwargs,
       default={"ops", "use_channels"})
-    for extra in extras:
-      del backend_kwargs[extra]
 
     try:
       await self.backend.drop_tips(ops=drops, use_channels=use_channels, **backend_kwargs)
@@ -641,10 +641,8 @@ class LiquidHandler:
           op.resource.tracker.queue_aspiration(op)
         op.tip.tracker.queue_aspiration(op)
 
-    extras = self._check_args(self.backend.aspirate, backend_kwargs,
+    backend_kwargs = self._check_args(self.backend.aspirate, backend_kwargs,
       default={"ops", "use_channels"})
-    for extra in extras:
-      del backend_kwargs[extra]
 
     try:
       await self.backend.aspirate(ops=aspirations, use_channels=use_channels, **backend_kwargs)
@@ -779,10 +777,8 @@ class LiquidHandler:
           op.resource.tracker.queue_dispense(op)
         op.tip.tracker.queue_dispense(op)
 
-    extras = self._check_args(self.backend.dispense, backend_kwargs,
+    backend_kwargs = self._check_args(self.backend.dispense, backend_kwargs,
       default={"ops", "use_channels"})
-    for extra in extras:
-      del backend_kwargs[extra]
 
     try:
       await self.backend.dispense(ops=dispenses, use_channels=use_channels, **backend_kwargs)
@@ -901,9 +897,7 @@ class LiquidHandler:
       backend_kwargs: Additional keyword arguments for the backend, optional.
     """
 
-    extras = self._check_args(self.backend.pick_up_tips96, backend_kwargs, default={"pickup"})
-    for extra in extras:
-      del backend_kwargs[extra]
+    backend_kwargs = self._check_args(self.backend.pick_up_tips96, backend_kwargs, default={"pickup"})
 
     await self.backend.pick_up_tips96(
       pickup=PickupTipRack(resource=tip_rack, offset=offset),
@@ -932,9 +926,7 @@ class LiquidHandler:
       backend_kwargs: Additional keyword arguments for the backend, optional.
     """
 
-    extras = self._check_args(self.backend.drop_tips96, backend_kwargs, default={"drop"})
-    for extra in extras:
-      del backend_kwargs[extra]
+    backend_kwargs = self._check_args(self.backend.drop_tips96, backend_kwargs, default={"drop"})
 
     await self.backend.drop_tips96(
       drop=DropTipRack(resource=tip_rack, offset=offset),
@@ -988,9 +980,7 @@ class LiquidHandler:
       backend_kwargs: Additional keyword arguments for the backend, optional.
     """
 
-    extras = self._check_args(self.backend.aspirate96, backend_kwargs, default={"aspiration"})
-    for extra in extras:
-      del backend_kwargs[extra]
+    backend_kwargs = self._check_args(self.backend.aspirate96, backend_kwargs, default={"aspiration"})
 
     if self._picked_up_tips96 is None:
       raise ChannelHasNoTipError("No tips have been picked up with the 96 head")
@@ -1040,9 +1030,7 @@ class LiquidHandler:
       backend_kwargs: Additional keyword arguments for the backend, optional.
     """
 
-    extras = self._check_args(self.backend.dispense96, backend_kwargs, default={"dispense"})
-    for extra in extras:
-      del backend_kwargs[extra]
+    backend_kwargs = self._check_args(self.backend.dispense96, backend_kwargs, default={"dispense"})
 
     if self._picked_up_tips96 is None:
       raise ChannelHasNoTipError("No tips have been picked up with the 96 head")
@@ -1126,9 +1114,7 @@ class LiquidHandler:
       put_direction: The direction from which to put down the resource.
     """
 
-    extras = self._check_args(self.backend.move_resource, backend_kwargs, default={"move"})
-    for extra in extras:
-      del backend_kwargs[extra]
+    backend_kwargs = self._check_args(self.backend.move_resource, backend_kwargs, default={"move"})
 
     return await self.backend.move_resource(move=Move(
       resource=resource,
