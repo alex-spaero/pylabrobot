@@ -267,7 +267,7 @@ class LiquidHandler:
           del new_kwargs[extra]
         return new_kwargs
       else:
-        logger.debug("Extra arguments to backend.%s: %s", method.__name__, extras)
+        logger.debug("Extra arguments passed to backend.%s: %s", method.__name__, extras)
 
     return backend_kwargs
 
